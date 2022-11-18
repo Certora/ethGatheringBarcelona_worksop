@@ -1,7 +1,7 @@
 SPECNAME="exampleSpec.spec"
 
 
-certoraRun.py  EnglishAuction.sol:EnglishAuction dependencies/DummyERC20A.sol dependencies/DummyERC721A.sol \
+certoraRun  EnglishAuction.sol:EnglishAuction dependencies/DummyERC20A.sol dependencies/DummyERC721A.sol \
     --verify EnglishAuction:$SPECNAME \
     --link EnglishAuction:token=DummyERC20A \
     --link EnglishAuction:nft=DummyERC721A \
@@ -13,7 +13,7 @@ certoraRun.py  EnglishAuction.sol:EnglishAuction dependencies/DummyERC20A.sol de
 
 for FILE in Mutations/* 
 do echo $FILE 
-    certoraRun.py  $FILE:EnglishAuction dependencies/DummyERC20A.sol dependencies/DummyERC721A.sol \
+    certoraRun  $FILE:EnglishAuction dependencies/DummyERC20A.sol dependencies/DummyERC721A.sol \
         --verify EnglishAuction:$SPECNAME \
         --link EnglishAuction:token=DummyERC20A \
         --link EnglishAuction:nft=DummyERC721A \

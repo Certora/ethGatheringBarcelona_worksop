@@ -81,10 +81,11 @@ contract EnglishAuction {
 
     function start() external {
         require(!started, "started");
+        require(!ended, "started");
         require(msg.sender == seller, "not seller");
-        ended = false;
-        nft.transferFrom(msg.sender, address(this), nftId);
+        
         started = true;
+        nft.transferFrom(msg.sender, address(this), nftId);
         endAt = block.timestamp + 7 days;
 
         emit Start();

@@ -2,13 +2,13 @@
    This is a specification file for EnglishAuction's formal verification
    using the Certora prover.
  */
- 
- 
- import "erc20.spec"
 
-// Reference from the spec to additional contracts used in the verification 
-using DummyERC721A as NFT
-using DummyERC20A as Token
+
+ import "erc20.spec";
+
+// Reference from the spec to additional contracts used in the verification
+using DummyERC721A as NFT;
+using DummyERC20A as Token;
 
 
 /*
@@ -19,29 +19,29 @@ using DummyERC20A as Token
 
 
 methods {
-    // auction getters 
-    seller() returns (address)                                              envfree
-    nftId() returns (uint)                                                  envfree
-    nft() returns(address)                                                  envfree
-    endAt() returns (uint256)                                               envfree
-    started() returns (bool)                                                envfree
-    ended() returns (bool)                                                  envfree
-    highestBidder() returns (address)                                       envfree
-    highestBid() returns (uint256)                                          envfree
-    bids(address) returns (uint256)                                         envfree
-    operators(address, address) returns (bool)                              envfree
+    // auction getters
+    function seller() external returns (address)                                              envfree;
+    function nftId() external returns (uint)                                                  envfree;
+    function nft() external returns(address)                                                  envfree;
+    function endAt() external returns (uint256)                                               envfree;
+    function started() external returns (bool)                                                envfree;
+    function ended() external returns (bool)                                                  envfree;
+    function highestBidder() external returns (address)                                       envfree;
+    function highestBid() external returns (uint256)                                          envfree;
+    function bids(address) external returns (uint256)                                         envfree;
+    function operators(address, address) external returns (bool)                              envfree;
 
 
     // erc721
-    safeTransferFrom(address, address, uint256)                             => DISPATCHER(true)
-    NFT.balanceOf(address) returns (uint256)                                envfree
-    NFT.ownerOf(uint256) returns (address)                                  envfree
-    /* NONDET implies that the function is treated as a non state changing 
-       function that returns arbitrary value */ 
-    onERC721Received( address,address,uint256,bytes) returns (address)      => NONDET
+    function _.safeTransferFrom(address, address, uint256)                             external => DISPATCHER(true);
+    function NFT.balanceOf(address) external returns (uint256)                                envfree;
+    function NFT.ownerOf(uint256) external returns (address)                                  envfree;
+    /* NONDET implies that the function is treated as a non state changing;
+       function that returns arbitrary value */
+    function _.onERC721Received( address,address,uint256,bytes)      => NONDET;
 
     //erc20
-    Token.balanceOf(address)                                                envfree
+    function Token.balanceOf(address)                                                external envfree;
 }
 
 
@@ -55,7 +55,7 @@ methods {
 ghost mathint sumBids {
     init_state axiom sumBids == 0 ;
 }
-    
+
 /* whenever bids[user] is updated to newValue where previously it held oldValue
    update sumBind */
 hook Sstore bids[KEY address user] uint256 newValue (uint256 oldValue) STORAGE {
@@ -72,13 +72,13 @@ hook Sstore bids[KEY address user] uint256 newValue (uint256 oldValue) STORAGE {
 function withdrawHelper(env e, method f, address user) returns bool {
     bool isReverted;
 
-    if (f.selector == withdraw().selector){
+    if (f.selector == sig:withdraw().selector){
         require e.msg.sender == user;
         withdraw@withrevert(e);
         isReverted = lastReverted;
         return isReverted;
 
-    } else if (f.selector == withdrawAmount(address, uint).selector) {
+    } else if (f.selector == sig:withdrawAmount(address, uint).selector) {
         address recipient; uint amount;
         require e.msg.sender == user;
         withdrawAmount@withrevert(e, recipient, amount);
@@ -98,11 +98,11 @@ function withdrawHelper(env e, method f, address user) returns bool {
 function bidHelper(env e, method f) {
     uint256 amount;
 
-    if (f.selector == bid(uint).selector){
+    if (f.selector == sig:bid(uint).selector){
         require e.msg.sender != currentContract;
         bid(e, amount);
-        
-    } else if (f.selector == bidFor(address, uint).selector) {
+
+    } else if (f.selector == sig:bidFor(address, uint).selector) {
         address bidder;
         require bidder != currentContract;
         bidFor(e, bidder, amount);
@@ -115,9 +115,9 @@ function bidHelper(env e, method f) {
 
 
 function callBidFunction(method f, env e, uint amount, address bidder) returns bool {
-    if (f.selector == bid(uint).selector ) {
+    if (f.selector == sig:bid(uint).selector ) {
         bid@withrevert(e, amount);
-        return !lastReverted; 
+        return !lastReverted;
     }
     else {
         bidFor@withrevert(e, bidder, amount);
@@ -129,19 +129,19 @@ function callBidFunction(method f, env e, uint amount, address bidder) returns b
 function callFunctionHelper(env e, method f, address operator, address bidder) {
     uint256 amount;
 
-    if (f.selector == withdrawAmount(address, uint).selector) {
+    if (f.selector == sig:withdrawAmount(address, uint).selector) {
         require e.msg.sender == operator;
         withdrawAmount(e, bidder, amount);
-    } else if  (f.selector == withdrawFor(address, uint).selector ){
+    } else if  (f.selector == sig:withdrawFor(address, uint).selector ){
         require e.msg.sender == operator;
         withdrawFor(e, bidder, amount);
-    }    
-    else if (f.selector == bidFor(address, uint).selector) {
+    }
+    else if (f.selector == sig:bidFor(address, uint).selector) {
         require e.msg.sender == operator;
         bidFor(e, bidder, amount);
-    } 
-    else if (f.selector == end().selector) {
-        require bidder != highestBidder() && bidder != seller() 
+    }
+    else if (f.selector == sig:end().selector) {
+        require bidder != highestBidder() && bidder != seller()
                     && operator != highestBidder() && operator != seller();
         end(e);
     }
@@ -163,22 +163,22 @@ function callFunctionHelper(env e, method f, address operator, address bidder) {
 /*****************/
 
 /* Property: Integrity of end() time
-   
+
    Description: Impossible to end earlier (version 1 - end() could be successfully executed only if assert is true)
 
-   This is an example of a simple unit test: for all states, for all block.timestamp 
+   This is an example of a simple unit test: for all states, for all block.timestamp
    if end() succeeded then block.timestamp must be at least endAt()
-   Note that as default only non reverting paths are reasoned 
+   Note that as default only non reverting paths are reasoned
 
 */
 rule integrityOfEndTime(env e) {
     end(e);
 
-    assert e.block.timestamp >= endAt(), "ended before endAt"; 
+    assert e.block.timestamp >= endAt(), "ended before endAt";
 }
 
 /* Property: Integrity of end() time
-   
+
    Description: Impossible to end earlier (version 2 - end() should revert under required condition)
 
    Same property as above but implemented with taking into account reverting path and reasoning about the case of lastReverted
@@ -213,7 +213,7 @@ rule noDoubleEnd(method f) {
     env e1; env e2; env eF;
 
     end(e1);
-    
+
     calldataarg args;
     f(eF,args);
 
@@ -237,23 +237,23 @@ rule noTimeToEnd(env e, method f) {
 // check correctness of bid functions:
 // 1 - if bid succeeded, the bidder should become the highestBidder and their balance should beupdated respectively
 // 2 - if the sum of bidder's previous bids and current bid is less than current highestBid, then bid should revert
-rule integrityOfBid(env e, method f) 
-    filtered { f -> 
-                f.selector == bidFor(address, uint).selector 
-                || f.selector == bid(uint).selector 
-    } 
+rule integrityOfBid(env e, method f)
+    filtered { f ->
+                f.selector == sig:bidFor(address, uint).selector
+                || f.selector == sig:bid(uint).selector
+    }
 {
     uint amount;
     address bidder;
     uint currentHighestBid = highestBid();
     uint bidBefore = bids(bidder);
 
-    if (f.selector == bid(uint).selector ) {
-        require bidder == e.msg.sender; 
+    if (f.selector == sig:bid(uint).selector ) {
+        require bidder == e.msg.sender;
     }
-    
-    bool success = callBidFunction(f, e, amount, bidder); 
- 
+
+    bool success = callBidFunction(f, e, amount, bidder);
+
     assert success => (bids(bidder) == bidBefore + amount && bidder == highestBidder());
     assert bidBefore + amount < currentHighestBid => !success;
 }
@@ -262,7 +262,7 @@ rule integrityOfBid(env e, method f)
 // check correctness of withdraw():
 // 1 - check that current highestBidder cannot withdraw
 // 2 - if withdraw succeeded, then user's bids should be 0 and token balance should increase respectively
-rule integrityOfWithdraw(env e, method f) 
+rule integrityOfWithdraw(env e, method f)
 {
     address bidder;
     address currentHighestBidder = highestBidder();
@@ -274,13 +274,13 @@ rule integrityOfWithdraw(env e, method f)
     withdraw@withrevert(e);
 
     assert e.msg.sender == currentHighestBidder => lastReverted;
-    assert !lastReverted => bids(e.msg.sender) == 0 
+    assert !lastReverted => bids(e.msg.sender) == 0
                     && Token.balanceOf(e.msg.sender) == balanceBefore + bidBefore;
 }
 
 
 // If user's bids were decreased, they can't be the highestBidder
-rule integrityOfAllWithdraws(env e, method f) 
+rule integrityOfAllWithdraws(env e, method f)
 {
     address bidder;
     address currentHighestBidder = highestBidder();
@@ -294,12 +294,12 @@ rule integrityOfAllWithdraws(env e, method f)
 
 
 // highestBidder cannot withdraw
-rule highestBidderFundsLocked(env e, method f) 
-    filtered { f -> 
-        f.selector == withdraw().selector 
-        || f.selector == withdrawAmount(address, uint).selector 
-        || f.selector == withdrawAmount(address, uint).selector 
-    } 
+rule highestBidderFundsLocked(env e, method f)
+    filtered { f ->
+        f.selector == sig:withdraw().selector
+        || f.selector == sig:withdrawAmount(address, uint).selector
+        || f.selector == sig:withdrawAmount(address, uint).selector
+    }
 {
     address user;
 
@@ -317,7 +317,7 @@ rule highestBidderFundsLocked(env e, method f)
 
 // If nobody made a bid, then all bids should be 0
 invariant zeroHighestBid(address other)
-    (highestBid() == 0 || highestBidder() == 0) => bids(other) == 0 
+    (highestBid() == 0 || highestBidder() == 0) => bids(other) == 0
     {
         preserved bidFor(address bidder, uint amount) with (env e) {
             require bidder != 0; // we can prove this
@@ -326,15 +326,15 @@ invariant zeroHighestBid(address other)
 
 
 // check highestBidder correlation with highestBid from bids mapping
-invariant highestBidVSBids(address a) 
+invariant highestBidVSBids(address a)
     (highestBidder() == a  => bids(a) == highestBid()) ||
-    (highestBidder() == 0) 
+    (highestBidder() == 0);
 
 
 // If a user isn't the highestBidder, they should have less bids than highestBid
-invariant integrityOfHighestBidStep3(address other) 
-    (highestBid() > 0 && other != highestBidder()) => 
-                bids(other) < highestBid() 
+invariant integrityOfHighestBidStep3(address other)
+    (highestBid() > 0 && other != highestBidder()) =>
+                bids(other) < highestBid()
     {
         preserved {
             requireInvariant highestBidVSBids(other);
@@ -344,8 +344,8 @@ invariant integrityOfHighestBidStep3(address other)
 
 
 // Nobody can have more bids than highestBid
-invariant integrityOfHighestBidWeaker(address any) 
-    bids(any) <= highestBid() 
+invariant integrityOfHighestBidWeaker(address any)
+    bids(any) <= highestBid();
 
 
 /****************************/
@@ -356,7 +356,7 @@ invariant integrityOfHighestBidWeaker(address any)
 // once auction was ended it always remains ended
 rule onceEndedAlwaysEnded(method f) {
     env e;
-    calldataarg args; 
+    calldataarg args;
 
     bool before = ended();
     f(e, args);
@@ -365,18 +365,18 @@ rule onceEndedAlwaysEnded(method f) {
 
 
 // started iff contract holds nft:
-// 1 - if start() succeeded, auction contract must hold NFT 
+// 1 - if start() succeeded, auction contract must hold NFT
 // 2 - if the auction was started, start() was called
 rule onStarted(method f) {
     env e;
-    calldataarg args; 
+    calldataarg args;
 
     bool startedBefore = started();
     f(e, args);
 
-    assert !startedBefore && started() => NFT.balanceOf(currentContract) >= 1 
+    assert !startedBefore && started() => NFT.balanceOf(currentContract) >= 1
                                             && NFT.ownerOf(nftId()) == currentContract;
-    assert !startedBefore && started() => f.selector == start().selector;
+    assert !startedBefore && started() => f.selector == sig:start().selector;
 }
 
 
@@ -395,7 +395,7 @@ rule flagsAfterStart(env e, method f) {
 }
 
 
-// after end(), both state flags are true 
+// after end(), both state flags are true
 rule flagsAfterEnd(env e, method f) {
 
     bool isStar = started();
@@ -415,8 +415,8 @@ rule flagsAfterEnd(env e, method f) {
 /***  Variable Transition ****/
 /*****************************/
 
-/* 
-   Property: Monotonicity of highest bid 
+/*
+   Property: Monotonicity of highest bid
    Description: highestBid can't decrease (if we consider only bid functions, can use >)
 
    Implemented as a parametric rule, a rule that is verified on all external\public functions of the contract
@@ -424,9 +424,9 @@ rule flagsAfterEnd(env e, method f) {
 
 rule monotonicityOfHighestBid(method f) {
     uint before = highestBid();
-    
+
     env e;
-    calldataarg args; 
+    calldataarg args;
     f(e, args);
 
     assert highestBid() >= before;
@@ -442,30 +442,30 @@ rule monotonicityOfHighestBid(method f) {
 // only balance of a specific user can change after a function call
 rule noChangeToOther(method f, address bidder) {
     env e;
-    calldataarg args; 
+    calldataarg args;
     uint256 amount; address bidderFor;
 
     uint beforeBid = bids(bidder);
 
-    if (f.selector == bidFor(address, uint).selector) {
+    if (f.selector == sig:bidFor(address, uint).selector) {
         bidFor(e, bidderFor, amount);
-    } 
+    }
     else {
         f(e, args);
     }
 
     uint afterBid = bids(bidder);
 
-    assert afterBid != beforeBid => (bidder == e.msg.sender 
-                                        || operators(bidder, e.msg.sender) == true 
+    assert afterBid != beforeBid => (bidder == e.msg.sender
+                                        || operators(bidder, e.msg.sender) == true
                                         || bidderFor == bidder);
-} 
+}
 
 
 // system should have at least the sum of all bids to be able to payback everybody
-invariant solvency() 
-    sumBids <= Token.balanceOf(currentContract) 
-    filtered { f -> f.selector != end().selector } 
+invariant solvency()
+    sumBids <= Token.balanceOf(currentContract)
+    filtered { f -> f.selector != sig:end().selector }
     {
         preserved with (env e) {
             require e.msg.sender != currentContract;
@@ -473,10 +473,10 @@ invariant solvency()
     }
 
 
-// user solvency  - the total assets of a user is maintained beside the seller and the highestBidder 
+// user solvency  - the total assets of a user is maintained beside the seller and the highestBidder
 rule totalAssetsOfUser(method f) {
     env e;
-    uint amount;  
+    uint amount;
     address operator;
     address bidder;
 
@@ -484,12 +484,12 @@ rule totalAssetsOfUser(method f) {
     require bidder != currentContract;
     require operator != currentContract;
 
-    mathint totalAssertBefore = bids(bidder) + Token.balanceOf(bidder) 
-                                    + bids(operator) + Token.balanceOf(operator); 
+    mathint totalAssertBefore = bids(bidder) + Token.balanceOf(bidder)
+                                    + bids(operator) + Token.balanceOf(operator);
 
     callFunctionHelper(e, f, operator, bidder);
 
-    mathint totalAssertAfter = bids(bidder) + Token.balanceOf(bidder) 
+    mathint totalAssertAfter = bids(bidder) + Token.balanceOf(bidder)
                                 + bids(operator) + Token.balanceOf(operator);
 
     assert totalAssertAfter == totalAssertBefore ;
@@ -498,7 +498,7 @@ rule totalAssetsOfUser(method f) {
 
 
 /**********************/
-/*** Risk Analysis ****/ 
+/*** Risk Analysis ****/
 /**********************/
 
 
@@ -513,14 +513,14 @@ rule lifeOfNFT(env e, method f) {
 
     address nftOwnerAfter = NFT.ownerOf(nftId());
 
-    assert nftOwnerAfter == highestBidder() && currentContract != seller() => f.selector == end().selector, "Remember, with great power comes great responsibility.";
-    assert nftOwnerBefore == nftOwnerAfter && currentContract != seller() => f.selector != end().selector;
+    assert nftOwnerAfter == highestBidder() && currentContract != seller() => f.selector == sig:end().selector, "Remember, with great power comes great responsibility.";
+    assert nftOwnerBefore == nftOwnerAfter && currentContract != seller() => f.selector != sig:end().selector;
 }
 
 
-// cannot withdraw more with withdrawAmount() than bids you have 
+// cannot withdraw more with withdrawAmount() than bids you have
 rule mortalWithdrawAmount(env e, method f) {
-    address recipient; 
+    address recipient;
     uint256 amount;
 
     uint256 bidBefore = bids(e.msg.sender);
@@ -537,12 +537,12 @@ rule sellerGetsPayed(env e) {
     uint nftBalanceBefore = NFT.balanceOf(seller());
     uint toSeller = highestBid();
 
-    require seller() != currentContract;  
+    require seller() != currentContract;
     requireInvariant highestBidVSBids(highestBidder());
 
     end(e);
 
-    assert Token.balanceOf(seller()) == toSeller + balanceBefore 
+    assert Token.balanceOf(seller()) == toSeller + balanceBefore
                 || NFT.balanceOf(seller()) == nftBalanceBefore + 1;
 }
 
@@ -555,5 +555,5 @@ rule changeToNFTOwner(env e, method f) {
 
     address nftOwnerAfter = NFT.ownerOf(nftId());
 
-    assert nftOwnerAfter != nftOwnerBefore  => ( f.selector == end().selector || f.selector == start().selector );
+    assert nftOwnerAfter != nftOwnerBefore  => ( f.selector == sig:end().selector || f.selector == sig:start().selector );
 }

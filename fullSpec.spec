@@ -33,15 +33,15 @@ methods {
 
 
     // erc721
-    function _.safeTransferFrom(address, address, uint256)                             external => DISPATCHER(true);
-    function NFT.balanceOf(address) external returns (uint256)                                envfree;
-    function NFT.ownerOf(uint256) external returns (address)                                  envfree;
+    function _.safeTransferFrom(address, address, uint256) external => DISPATCHER(true);
+    function NFT.balanceOf(address) external returns (uint256) envfree;
+    function NFT.ownerOf(uint256) external returns (address) envfree;
     /* NONDET implies that the function is treated as a non state changing;
        function that returns arbitrary value */
-    function _.onERC721Received( address,address,uint256,bytes)      => NONDET;
+    function _.onERC721Received( address,address,uint256,bytes) external => NONDET;
 
     //erc20
-    function Token.balanceOf(address)                                                external envfree;
+    function Token.balanceOf(address) external returns (uint256) envfree;
 }
 
 
@@ -254,8 +254,8 @@ rule integrityOfBid(env e, method f)
 
     bool success = callBidFunction(f, e, amount, bidder);
 
-    assert success => (bids(bidder) == bidBefore + amount && bidder == highestBidder());
-    assert bidBefore + amount < currentHighestBid => !success;
+    assert success => ( to_mathint(bids(bidder)) == bidBefore + amount && bidder == highestBidder());
+    assert bidBefore + amount < to_mathint(currentHighestBid) => !success;
 }
 
 
@@ -275,7 +275,7 @@ rule integrityOfWithdraw(env e, method f)
 
     assert e.msg.sender == currentHighestBidder => lastReverted;
     assert !lastReverted => bids(e.msg.sender) == 0
-                    && Token.balanceOf(e.msg.sender) == balanceBefore + bidBefore;
+                    && to_mathint(Token.balanceOf(e.msg.sender)) == balanceBefore + bidBefore;
 }
 
 
@@ -464,7 +464,7 @@ rule noChangeToOther(method f, address bidder) {
 
 // system should have at least the sum of all bids to be able to payback everybody
 invariant solvency()
-    sumBids <= Token.balanceOf(currentContract)
+    sumBids <= to_mathint(Token.balanceOf(currentContract))
     filtered { f -> f.selector != sig:end().selector }
     {
         preserved with (env e) {
@@ -542,8 +542,8 @@ rule sellerGetsPayed(env e) {
 
     end(e);
 
-    assert Token.balanceOf(seller()) == toSeller + balanceBefore
-                || NFT.balanceOf(seller()) == nftBalanceBefore + 1;
+    assert to_mathint(Token.balanceOf(seller())) == toSeller + balanceBefore
+                || to_mathint(NFT.balanceOf(seller())) == nftBalanceBefore + 1;
 }
 
 rule changeToNFTOwner(env e, method f) {

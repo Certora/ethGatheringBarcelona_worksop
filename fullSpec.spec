@@ -185,7 +185,7 @@ rule integrityOfEndTime(env e) {
 
 */
 // Impossible to end earlier (
-rule impossibleToEndEarlier(env e, method f) {
+rule impossibleToEndEarlier(env e) {
     require e.block.timestamp < endAt();
 
     end@withrevert(e);
@@ -265,7 +265,7 @@ rule integrityOfBid(env e, method f)
 // check correctness of withdraw():
 // 1 - check that current highestBidder cannot withdraw
 // 2 - if withdraw succeeded, then user's bids should be 0 and token balance should increase respectively
-rule integrityOfWithdraw(env e, method f)
+rule integrityOfWithdraw(env e)
 {
     address bidder;
     address currentHighestBidder = highestBidder();
@@ -385,7 +385,7 @@ rule onStarted(method f) {
 
 
 // after start(), `start` is true and `end` is false
-rule flagsAfterStart(env e, method f) {
+rule flagsAfterStart(env e) {
 
     bool isStar = started();
     bool isEnd = ended();
@@ -400,7 +400,7 @@ rule flagsAfterStart(env e, method f) {
 
 
 // after end(), both state flags are true
-rule flagsAfterEnd(env e, method f) {
+rule flagsAfterEnd(env e) {
 
     bool isStar = started();
     bool isEnd = ended();
@@ -537,17 +537,19 @@ rule mortalWithdrawAmount(env e) {
 // RULE4
 // At the end of auction a seller will get NFT back or get tokens
 rule sellerGetsPayed(env e) {
-    uint256 balanceBefore = Token.balanceOf(seller());
-    uint nftBalanceBefore = NFT.balanceOf(seller());
-    uint toSeller = highestBid();
+    mathint balanceBefore = Token.balanceOf(seller());
+    mathint nftBalanceBefore = NFT.balanceOf(seller());
+    mathint toSeller = highestBid();
 
     require seller() != currentContract;
     requireInvariant highestBidVSBids(highestBidder());
 
     end(e);
 
-    assert to_mathint(Token.balanceOf(seller())) == toSeller + balanceBefore
-                || to_mathint(NFT.balanceOf(seller())) == nftBalanceBefore + 1;
+    mathint balanceAfter = Token.balanceOf(seller());
+    mathint nftBalanceAfter = NFT.balanceOf(seller());
+    assert balanceAfter == toSeller + balanceBefore
+                || nftBalanceAfter == nftBalanceBefore + 1;
 }
 
 rule changeToNFTOwner(env e, method f) {

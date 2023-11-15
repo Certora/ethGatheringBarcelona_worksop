@@ -7,7 +7,6 @@ certoraRun  EnglishAuction.sol:EnglishAuction dependencies/DummyERC20A.sol depen
     --link EnglishAuction:nft=DummyERC721A \
     --parametric_contracts EnglishAuction \
     --optimistic_loop \
-    --send_only \
     --rule_sanity basic \
     --msg "$SPECNAME - EnglishAuction with fullSpec"
 
@@ -20,7 +19,6 @@ do echo $FILE
         --link EnglishAuction:nft=DummyERC721A \
         --parametric_contracts EnglishAuction \
         --optimistic_loop \
-        --send_only \
         --rule_sanity basic \
         --msg "$SPECNAME - $FILE with fullSpec"
 done

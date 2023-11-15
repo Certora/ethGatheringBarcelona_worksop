@@ -234,6 +234,7 @@ rule noTimeToEnd(env e, method f) {
 }
 
 
+// RULE35
 // check correctness of bid functions:
 // 1 - if bid succeeded, the bidder should become the highestBidder and their balance should beupdated respectively
 // 2 - if the sum of bidder's previous bids and current bid is less than current highestBid, then bid should revert
@@ -254,7 +255,9 @@ rule integrityOfBid(env e, method f)
 
     bool success = callBidFunction(f, e, amount, bidder);
 
-    assert success => ( to_mathint(bids(bidder)) == bidBefore + amount && bidder == highestBidder());
+    uint bidAfter = bids(bidder);
+
+    assert success => ( to_mathint(bidAfter) == bidBefore + amount && bidder == highestBidder());
     assert bidBefore + amount < to_mathint(currentHighestBid) => !success;
 }
 
@@ -325,6 +328,7 @@ invariant zeroHighestBid(address other)
     }
 
 
+// RULE1
 // check highestBidder correlation with highestBid from bids mapping
 invariant highestBidVSBids(address a)
     (highestBidder() == a  => bids(a) == highestBid()) ||
@@ -484,15 +488,15 @@ rule totalAssetsOfUser(method f) {
     require bidder != currentContract;
     require operator != currentContract;
 
-    mathint totalAssertBefore = bids(bidder) + Token.balanceOf(bidder)
+    mathint totalAssetsBefore = bids(bidder) + Token.balanceOf(bidder)
                                     + bids(operator) + Token.balanceOf(operator);
 
     callFunctionHelper(e, f, operator, bidder);
 
-    mathint totalAssertAfter = bids(bidder) + Token.balanceOf(bidder)
+    mathint totalAssetsAfter = bids(bidder) + Token.balanceOf(bidder)
                                 + bids(operator) + Token.balanceOf(operator);
 
-    assert totalAssertAfter == totalAssertBefore ;
+    assert totalAssetsAfter == totalAssetsBefore ;
 }
 
 
@@ -517,9 +521,9 @@ rule lifeOfNFT(env e, method f) {
     assert nftOwnerBefore == nftOwnerAfter && currentContract != seller() => f.selector != sig:end().selector;
 }
 
-
+// RULE2
 // cannot withdraw more with withdrawAmount() than bids you have
-rule mortalWithdrawAmount(env e, method f) {
+rule mortalWithdrawAmount(env e) {
     address recipient;
     uint256 amount;
 
@@ -527,10 +531,10 @@ rule mortalWithdrawAmount(env e, method f) {
 
     withdrawAmount@withrevert(e, recipient, amount);
 
-    assert bidBefore < amount => lastReverted, "Remember, with great power comes great responsibility.";
+    assert bidBefore < amount => lastReverted, "Bidder cannot withdraw more than their balance";
 }
 
-
+// RULE4
 // At the end of auction a seller will get NFT back or get tokens
 rule sellerGetsPayed(env e) {
     uint256 balanceBefore = Token.balanceOf(seller());

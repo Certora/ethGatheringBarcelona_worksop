@@ -207,7 +207,7 @@ rule noDoubleStart(method f) {
     assert lastReverted;
 }
 
-
+// RULE6
 // Impossible to end twice - the same logic as in `noDoubleStart` - (fails reachability check for end() and start() because it cannot be performed under invariant conditions)
 rule noDoubleEnd(method f) {
     env e1; env e2; env eF;
@@ -276,9 +276,11 @@ rule integrityOfWithdraw(env e)
 
     withdraw@withrevert(e);
 
+    mathint balanceAfter = Token.balanceOf(e.msg.sender);
+
     assert e.msg.sender == currentHighestBidder => lastReverted;
     assert !lastReverted => bids(e.msg.sender) == 0
-                    && to_mathint(Token.balanceOf(e.msg.sender)) == balanceBefore + bidBefore;
+                    && balanceAfter == balanceBefore + bidBefore;
 }
 
 

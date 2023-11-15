@@ -142,7 +142,7 @@ contract EnglishAuction {
         require(!ended, "ended");
         bool _success;
 
-        /* ended = true; // comment for bug: */
+        // ended = true; /* bug */
         if (highestBidder != address(0)) {
             nft.transferFrom(address(this), highestBidder, nftId);
             _success = token.transferFrom(address(this), seller, bids[highestBidder]);

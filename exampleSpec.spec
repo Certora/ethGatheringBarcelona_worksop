@@ -2,13 +2,13 @@
    This is a specification file for EnglishAuction's formal verification
    using the Certora prover.
  */
- 
- 
- import "erc20.spec"
 
-// Reference from the spec to additional contracts used in the verification. 
-using DummyERC721A as NFT
-using DummyERC20A as Token
+
+ import "erc20.spec";
+
+// Reference from the spec to additional contracts used in the verification.
+using DummyERC721A as NFT;
+using DummyERC20A as Token;
 
 
 /*
@@ -19,29 +19,29 @@ using DummyERC20A as Token
 
 
 methods {
-    // auction getters 
-    seller() returns (address)                                              envfree
-    nftId() returns (uint)                                                  envfree
-    nft() returns(address)                                                  envfree
-    endAt() returns (uint256)                                               envfree
-    started() returns (bool)                                                envfree
-    ended() returns (bool)                                                  envfree
-    highestBidder() returns (address)                                       envfree
-    highestBid() returns (uint256)                                          envfree
-    bids(address) returns (uint256)                                         envfree
-    operators(address, address) returns (bool)                              envfree
+    // auction getters
+    function seller()                    external returns (address) envfree;
+    function nftId()                     external returns (uint) envfree;
+    function nft()                       external returns(address) envfree;
+    function endAt()                     external returns (uint256) envfree;
+    function started()                   external returns (bool) envfree;
+    function ended()                     external returns (bool) envfree;
+    function highestBidder()             external returns (address) envfree;
+    function highestBid()                external returns (uint256) envfree;
+    function bids(address)               external returns (uint256) envfree;
+    function operators(address, address) external returns (bool) envfree;
 
 
     // erc721
-    safeTransferFrom(address, address, uint256)                             => DISPATCHER(true)
-    NFT.balanceOf(address) returns (uint256)                                envfree
-    NFT.ownerOf(uint256) returns (address)                                  envfree
-    /* NONDET implies that the function is treated as a non state changing 
-       function that returns arbitrary value */ 
-    onERC721Received( address,address,uint256,bytes) returns (address)      => NONDET
+    function _.safeTransferFrom(address, address, uint256) external => DISPATCHER(true);
+    function NFT.balanceOf(address) external returns (uint256) envfree;
+    function NFT.ownerOf(uint256) external returns (address) envfree;
+    /* NONDET implies that the function is treated as a non state changing;
+       function that returns arbitrary value */
+    function _.onERC721Received( address,address,uint256,bytes) external => NONDET;
 
     //erc20
-    Token.balanceOf(address)                                                envfree
+    function Token.balanceOf(address) external returns (uint256) envfree;
 }
 
 
@@ -50,29 +50,29 @@ methods {
 -----------------------------------------------*/
 
 
-/****************************** 
+/******************************
 *           Unit Test         *
 ******************************/
 
 
 /* Property: Integrity of end() time
-   
+
    Description: Impossible to end earlier (version 1 - end() could be successfully executed only if assert is true)
 
-   This is an example of a simple unit test: for all states, for all block.timestamp 
+   This is an example of a simple unit test: for all states, for all block.timestamp
    if end() succeeded then block.timestamp must be at least endAt()
-   Note that as default only non reverting paths are reasoned 
+   Note that as default only non reverting paths are reasoned
 
 */
 rule integrityOfEndTime(env e) {
     end(e);
 
-    assert e.block.timestamp >= endAt(), "ended before endAt"; 
+    assert e.block.timestamp >= endAt(), "ended before endAt";
 }
 
 
 /* Property: Integrity of end() time
-   
+
    Description: Impossible to end earlier (version 2 - end() should revert under required condition)
 
    Same property as above but implemented with taking into account reverting path and reasoning about the case of lastReverted
@@ -89,48 +89,48 @@ rule impossibleToEndEarlier(env e, method f) {
 
 
 
-/****************************** 
+/******************************
 *       Variable Transition   *
 ******************************/
 
-/* 
-   Property: Monotonicity of highest bid 
+/*
+   Property: Monotonicity of highest bid
    Description: highestBid can't decrease (if we consider only bid functions, can use >)
 
    Implemented as a parametric rule, a rule that is verified on all external\public functions of the contract
 */
 rule monotonicityOfHighestBid(method f) {
     uint before = highestBid();
-    
+
     env e;
-    calldataarg args; 
+    calldataarg args;
     f(e, args);
 
     assert highestBid() >= before;
 }
 
 
-/****************************** 
+/******************************
 *       State Transition      *
 ******************************/
 
 
 /* Property: Once ended Always ended
-   
-   Description: If the auction is at ended state it stays ended after every possible transaction 
+
+   Description: If the auction is at ended state it stays ended after every possible transaction
 
    Implemented with an implication which can be written as:
 
    if (before) {
       assert (ended());
    }
-   else 
-      assert (True);  <---- always hold 
+   else
+      assert (True);  <---- always hold
 
 */
 rule onceEndedAlwaysEnded(method f) {
     env e;
-    calldataarg args; 
+    calldataarg args;
 
     bool before = ended();
     f(e, args);
@@ -139,39 +139,39 @@ rule onceEndedAlwaysEnded(method f) {
 
 
 
-/****************************** 
+/******************************
 *        Valid State          *
 ******************************/
 
 /* Property: Others bids are less than the highestBid
-   
-   Implemented as an invariant - an expression that must hold on all states. 
-   
-   NOTE: This is failing, let's understand why and fix the rule 
+
+   Implemented as an invariant - an expression that must hold on all states.
+
+   NOTE: This is failing, let's understand why and fix the rule
 
 */
-invariant integrityOfHighestBidStep(address other) 
-     other != highestBidder()  => bids(other) < highestBid() 
+invariant integrityOfHighestBidStep(address other)
+     other != highestBidder()  => bids(other) < highestBid();
 
 
 
-/****************************** 
+/******************************
 *       High Level            *
 ******************************/
 
 
 
-/****************************** 
+/******************************
 *       Risk Assessment       *
 ******************************/
 
 /* Property: changeToNFTOwner
-   
+
    Description: NFT Owner does not change except on end() and start()
 
    Here there is a call to the NFT contract. Also note the use of f.selector to reference a specific function
 
-   This property can be strengthened 
+   This property can be strengthened
 */
 rule changeToNFTOwner(env e, method f) {
     address nftOwnerBefore = NFT.ownerOf(nftId()); /* reference to another contract */
@@ -182,7 +182,7 @@ rule changeToNFTOwner(env e, method f) {
 
     address nftOwnerAfter = NFT.ownerOf(nftId());
 
-    assert nftOwnerAfter != nftOwnerBefore  => ( f.selector == end().selector || f.selector == start().selector );
+    assert nftOwnerAfter != nftOwnerBefore  => ( f.selector == sig:end().selector || f.selector == sig:start().selector );
 }
 
 
@@ -198,14 +198,14 @@ rule changeToNFTOwner(env e, method f) {
 ghost mathint sumBids {
     init_state axiom sumBids == 0 ;
 }
-    
+
 /* whenever bids[user] is updated to newValue where previously it held oldValue
    update sumBind */
 hook Sstore bids[KEY address user] uint256 newValue (uint256 oldValue) STORAGE {
     sumBids = sumBids + newValue - oldValue;
 }
 
-// simple rule that uses the ghost and filters 
+// simple rule that uses the ghost and filters
 
 rule justUseGhost(method f) {
     mathint before = sumBids;
@@ -222,9 +222,9 @@ rule justUseGhost(method f) {
 /* These helper functions are example and can help in reasoning about the different cases */
 
 function callBidFunction(method f, env e, uint amount, address bidder) returns bool {
-    if (f.selector == bid(uint).selector ) {
+    if (f.selector == sig:bid(uint).selector ) {
         bid@withrevert(e, amount);
-        return !lastReverted; 
+        return !lastReverted;
     }
     else {
         bidFor@withrevert(e, bidder, amount);
@@ -236,15 +236,15 @@ function callBidFunction(method f, env e, uint amount, address bidder) returns b
 function callFunctionHelper(env e, method f, address operator, address bidder) {
     uint256 amount;
     require e.msg.sender == operator;
-    if (f.selector == withdrawAmount(address, uint).selector) {     
+    if (f.selector == sig:withdrawAmount(address, uint).selector) {
         withdrawAmount(e, bidder, amount);
-    } else if  (f.selector == withdrawFor(address, uint).selector ){
+    } else if  (f.selector == sig:withdrawFor(address, uint).selector ){
         withdrawFor(e, bidder, amount);
-    }    
-    else if (f.selector == bidFor(address, uint).selector) {
+    }
+    else if (f.selector == sig:bidFor(address, uint).selector) {
         bidFor(e, bidder, amount);
-    } 
-    else if (f.selector == end().selector) {
+    }
+    else if (f.selector == sig:end().selector) {
         end(e);
     }
     else {

@@ -15,7 +15,7 @@ After the auction
 
 */
 
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.9;
 
 interface IERC721 {
     function transferFrom(
@@ -142,7 +142,7 @@ contract EnglishAuction {
         require(!ended, "ended");
         bool _success;
 
-        /* ended = true; */
+        // ended = true; /* bug */
         if (highestBidder != address(0)) {
             nft.transferFrom(address(this), highestBidder, nftId);
             _success = token.transferFrom(address(this), seller, bids[highestBidder]);
